@@ -257,7 +257,7 @@ Point cons
 当不用初始化链时，相当于无参数create class P的object，所以此时P必须有无参数的默认构造器，同时由于放弃了初始化的机会，后面就不能再去调用对象本身的构造器，即不能b(xb)，而只能通过赋值来给"初值"，如b = P(xb)或b = xb，注意这两者的结果是相同的，因为b = xb时编译器会将xb隐式类型转换为P(xb)，依然会调用构造器
 
 ### container
-All Sequential Containers(序列容器，元素顺序保持)
+All Sequential Containers(序列容器，**元素顺序保持**)
 - vectors: variable array
 - deque: dual-end queue
 - list: double-linked-list
@@ -281,9 +281,24 @@ int main()
     return 0;
 }
 
+//vector的基本操作
+如果x.size() = 100，
+然后x[1000] = 100;
+x的size不会变，因为其实是越界访问了，不会自动去拓展成1000size，这样可能不会报错，有时甚至取x[1000]也能得到100，不过这只是因为在硬件层面不存在"界"，所以越界就只是去相应地址操作了，且是堆空间，所以可能不会出错，但这是不安全的。
+要扩展size只能x.push_back()或者在初始化时就给一个size值
 
+//preallocate
+vector<int> v(100);
+v[80] = 1;
+v[200] = 1; //bad
 
-
+//add/remove/find
+v.push_back(e);
+v.pop_back(e);
+v.insert(pos, e);
+v.erase(pos);
+v.clear();
+v.find(first, last, item);
 
 ```
 vector的空间不是连续的，是分块的
@@ -291,6 +306,47 @@ x.end()应该指向末尾元素的后一元素位置
 泛型类(generic class):
 - Have to specify two types: the type of the collection itself (here: vector) and the type of the elements that we plan to store in the collection
 
+```cpp
+//list，以链表形态实现，双向链表
+x.push_back();
+x.push_front();
+x.pop_back();
+x.pop_front();
+x.insert(pos, e);
+x.remove(item); //去找到item然后remove
+
+迭代器时要用p != s.end(), 不能用p < s.end()，因为链表未必是stored in order的，即p的值未必小于s.end()
+
+#include<iostream>
+#include<list>
+#include<string>
+using namespace std;
+
+int main()
+{
+    list<string> s;
+    list<string>::iterator p;
+    for(p = s.begin(); p != s.end(); p++)
+        cout << *p << " ";
+}
+
+```
+
+```cpp
+//map，映射，基于内容映射(即不是基于下标映射)的容器
+#include<iostream>
+#include<map>
+using namespace std;
+
+int main()
+{
+    map<string, float> price;
+    price["apple"] = 0.75;
+    price["banana"] = 0.35;
+    cout << price["orange"]; //0，虽然不存在，但是没报错
+}
+
+```
 
 
 
