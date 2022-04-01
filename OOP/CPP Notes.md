@@ -295,10 +295,94 @@ x.end()应该指向末尾元素的后一元素位置
 
 
 ### Function overloading
-同样的函数名，不同的参数链
+同样的函数名，不同的参数链，返回类型不同不算
+对成员函数，显式参数链相同时，const与非const也构成重载，const对象会调用const函数，非const对象会调用非const函数，因为const会加到隐参数this上，所以参数链还是不同的
+```cpp
+void f(short i);
+void f(double d);
 
+f('a'); //error，与多个重载函数匹配
+f(2); //error，与多个重载函数匹配
+f(2L); //error，与多个重载函数匹配
+f(3.2);
+
+
+```
 
 
 
 
 ### Default arguments
+给在函数声明处，与函数无关，编译器给的，相应代码生成在调用函数的地方而不在函数定义的地方，必须从右往左给
+
+### access control
+- public
+- private
+- protected 对子类有效
+- friend: Can declare a global function as a friend, as well as a member function of another class, or even an entire class, as a friend. 同class的objects互为友元
+
+
+
+
+
+### Object Interactive
+
+
+
+
+### Inline Functions
+有点像预处理宏，调用时将函数体在该处展开，需要在函数声明和定义处都使用inline关键词，inline函数的定义其实是声明，may not generate any code in .obj file
+
+将inline function放在.cpp中时，编译器会将其视作static，只能在此编译单元被访问
+
+将inline functions放在头文件里：
+• So you can put inline functions’ bodies in header
+file. Then #include it where the function is needed.
+• Never be afraid of multi-definition of inline
+functions, since they have no body at all.
+• Definitions of inline functions are just declarations
+
+class声明内的成员函数(含函数体)自动inline，如果函数体放在外面，则需要在两处都加上inline关键词，且函数体应放在头文件中。
+• You can put the definition of an inline member
+function out of the class braces.
+• But the definition of the functions should be put
+**before where they may be called**
+
+
+### const
+编译器保证它不被改变，其实可以改(在RAM里)
+
+本地const变量(compile time)可以被优化
+全局const，编译器一定会为其保留空间
+静态全局const，也会被优化
+参数，成员变量不会被优化，对const成员变量必须初始化
+1.在初始化链中对该变量初始化
+2.在声明处赋默认初始化值 const int i = 10;
+3. **声明时通过函数之类的？？？？？？？**
+
+const char* p = &a;
+不能通过p改变其所指向的对象a
+
+
+Can always treat a non-const value as const
+可以将非const赋给const，可以加限制，不能减限制
+
+You cannot treat a constant object as non-constant without an explicit cast(const_cast)
+
+对于函数参数和返回值，传的是值，所以参数本身是安全的，但可以通过加const限定保证与参数相关联的对象不会被改变(当参数和返回值是指针或引用时)
+
+不改成员变量的成员函数都应当加上const,函数原型声明与定义处都要加const
+
+
+### static
+第一次遇到static objects的定义语句时被构造
+
+- 全局objects
+不同编译单元内的全局static objects的创建顺序未知，同一编译单元内是按照定义顺序来创建的
+逆序析构
+
+- 成员变量
+访问限于类内部，被类对象共享，但不包含于类实例，即不包含于实例的size()
+静态成员函数只能访问静态成员变量，不需要有类实例存在
+必须要在.cpp文件里定义该变量，并初始化(可以分开)，且不能加static前缀
+
