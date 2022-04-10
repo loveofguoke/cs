@@ -442,3 +442,147 @@ You cannot treat a constant object as non-constant without an explicit cast(cons
 静态成员函数只能访问静态成员变量，不需要有类实例存在
 必须要在.cpp文件里定义该变量，并初始化(可以分开)，且不能加static前缀
 
+### namespace
+- avoid name clashes
+- 表达classes, functions, variables的逻辑group
+- 当需要对name进行封装时使用
+
+``` cpp
+namespace Math
+{
+    double abs(double );
+    double sqrt(double );
+    int trunc(double );
+} // 没有分号
+
+```
+namespace只是声明，放在头文件中，
+#### Using-Declarations
+• Introduces a local synonym for name
+• States in one place where a name comes from.
+• Eliminates redundant scope qualification
+``` cpp
+void main()
+{
+    using MyLib::foo; //使用namespace里具体的东西
+    using Mylib::Cat;
+    foo();
+    Cat c;
+    c.Meow();
+}
+
+```
+#### Ambiguities
+当两个命名空间有同名函数时，如果都用了using namespace，然后仅用名称去调用，可能会有冲突。using-directives只是让你能够仅通过名称去用，而没有实际去用，所以只有当你显式调用的时候冲突才会产生。
+
+#### 别名
+``` cpp
+namespace supercali{
+    void f();
+}
+
+namespace short = supercali;
+short::f();
+```
+
+#### 编译
+``` cpp
+//为了避免冲突我们用命名空间将函数声明包装
+// old1.h
+namespace old1 
+{
+    void f();
+    void g();
+}
+
+//old2.h
+namespace old2
+{
+    void f();
+    void g();
+}
+
+//但我们能不能这样，不改头文件，就在要用的地方把它包起来
+namespace old1
+{
+    #include "old1.h"
+}
+
+old1::h(); 编译器时将其汇编成 __old1_h，但是在其对应的源文件中并没有声明h()是属于old1命名空间的，所以汇编成 _h，因此在链接的时候找不到相关函数，报错
+```
+A::f(int, student ) 汇编成 __A_f_int_student
+f(double )          汇编成 _f_double
+
+老版本的C语言编译器不会加下划线和额外信息，只有函数名称，所以如果用老版本的二进制文件(.lib)和头文件，则新编译器会为头文件里被调用的函数都加上额外信息，导致链接的时候在二进制文件中找不到相应函数，报错。可以这样：
+``` cpp
+extern "C"
+{
+    #include "old1.h"
+}
+```
+CPP编译器就会按老版本去编译里面的函数
+正因此**Namespaces are open**,在多个同名的命名空间中的声明会被加到同一个命名空间中，因为其汇编代码都是加了该命名空间的前缀，所以对编译器而言是一样的，因此命名空间可以被分布到多个文件中
+
+#### namespace composition
+``` cpp
+namespace mine
+{
+    using namespace first; //将first中的东西都放到mine里
+    using namespace second;
+    using first::y(); //当别人用mine::y时用的是first中的y
+    using orig::Cat;
+    void mystuff;
+}
+
+```
+### Inheritance
+接口重用，共享设计(而不是共享数据?)，包括成员变量、成员函数、接口
+为了便于维护，比如有两个类大部分结构都一样，如果出错了，每次都要改两个地方，如果使用继承就可以只改一个地方，即他们的超类，在超类定义共同的属性，子类继承超类的属性(所有的东西都在,属性和操作,但可能有些东西碰不了)，子类有自己的属性
+子类和父类的关系: Is A
+
+``` cpp
+class Item
+{
+
+}
+
+class CD: public Item //继承自Item
+{
+
+}
+
+class DVD: public Item
+{
+
+}
+
+```
+#### 可视度
+protected表示自己和子类可以访问，别人不能访问
+虽然子类中包含父类的所有信息，但是如果在父类中是private的，那就不能直接在子类中访问，可以通过调用父类中的成员函数来访问。
+
+#### ex
+``` cpp
+class Manager: public Employee
+{
+public:
+    Manager(const string& _name, const string& _ssn, const string& _title)
+        : Employee(name, ssn), title(_title) {}
+    
+    void print() const //会覆盖父类中所有名称为print的重载函数，name hide
+    {
+        Employee::print(); //父类的同名函数
+        cout << title << endl;
+    }
+protected:
+    string title;
+};
+
+//子类继承父类的所有东西，所以构造子类对象时会构造出相应的父类对象，因此子类构造函数需要满足父类中至少一种构造函数的参数格式(可以有自己的额外参数)，且在初始化链中应当将父类中的参数传给父类的构造函数，让它去构造
+
+
+
+
+
+
+```
