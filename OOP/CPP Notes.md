@@ -407,8 +407,33 @@ function out of the class braces.
 
 ### const
 编译器保证它不被改变，其实可以改(在RAM里)
+实际上只在编译时刻保护
 
-本地const变量(compile time)可以被优化
+• A const in C++ defaults to internal linkage,内部链接，默认状态下，const对象仅在文件内有效,编译器把用到该变量的地方替换成相应的值。若多个文件出现同名const变量，相当于再不同文件分别定义独立变量。
+– the compiler tries to avoid creating storage for a const --
+holds the value in its symbol table. 用到它了，找到这个symbol得到值即可
+– extern forces storage to be allocated.
+本地const变量(compile time)可以被优化, const int x = 123;
+
+#### extern const限定
+如果要在文件间共享const变量，且其初始值不是常量表达式，同时我们希望只需在一个文件中定义，在其它文件中声明并使用，则可以在声明和定义处都添加extern关键字，给初始值的地方是定义的地方。
+``` cpp
+// file1.cpp
+extern const int bufsize = fcn();
+//file1.h
+extern const int bufsize;
+//file2.cpp
+extern const int bufsize;
+```
+####
+
+- 常量特征只在执行改变其值的操作时才会发挥作用
+
+- 由于const对象一旦创建就不能再更改，所以必须初始化，初始值可以是任意表达式
+    - const int k; //错误 
+
+
+
 全局const，编译器一定会为其保留空间
 静态全局const，也会被优化
 参数，成员变量不会被优化，对const成员变量必须初始化
@@ -536,7 +561,7 @@ namespace mine
 
 ```
 ### Inheritance
-接口重用，共享设计(而不是共享数据?)，包括成员变量、成员函数、接口
+接口重用，共享设计(而不是共享数据?)，包括成员变量、成员函数、接口(对外公布的东西)
 为了便于维护，比如有两个类大部分结构都一样，如果出错了，每次都要改两个地方，如果使用继承就可以只改一个地方，即他们的超类，在超类定义共同的属性，子类继承超类的属性(所有的东西都在,属性和操作,但可能有些东西碰不了)，子类有自己的属性
 子类和父类的关系: Is A
 
@@ -558,16 +583,17 @@ class DVD: public Item
 
 ```
 #### 可视度
-protected表示自己和子类可以访问，别人不能访问
+protected表示自己和子类可以访问，别人(main)不能访问
 虽然子类中包含父类的所有信息，但是如果在父类中是private的，那就不能直接在子类中访问，可以通过调用父类中的成员函数来访问。
+父类public的到子类还是public
 
 #### ex
 ``` cpp
-class Manager: public Employee
+class Manager: public Employee //默认是private,私有继承，父类public的变成了子类的private，把父类当作自己的私有成员变量，protected则只有子类的子类知道父类是什么
 {
 public:
     Manager(const string& _name, const string& _ssn, const string& _title)
-        : Employee(name, ssn), title(_title) {}
+        : Employee(name, ssn), title(_title) {} //先调用父类的构造函数，再调用自己的
     
     void print() const //会覆盖父类中所有名称为print的重载函数，name hide
     {
@@ -580,9 +606,67 @@ protected:
 
 //子类继承父类的所有东西，所以构造子类对象时会构造出相应的父类对象，因此子类构造函数需要满足父类中至少一种构造函数的参数格式(可以有自己的额外参数)，且在初始化链中应当将父类中的参数传给父类的构造函数，让它去构造
 
+```
+#### 
+子类的对象中有父类的对象，属于自己(会分配空间)，先调用父类构造函数来初始化父类的对象(有些是private的)，所以内存结构中先是父类对象才是自己的成员变量
 
+### Polymorphism
+#### up-casting 造型
+sizeof在编译时运算,没有任何成员变量的类对象的size为1
+可以把子类的对象当作父类的对象
+把子类的指针和引用(值)赋给父类的指针和引用(类型)
+指向D的指针可以赋给指向B的指针，D的引用可以赋给B的引用，不改变内容
+B* ep = &D; //把D视作B，指向父类的指针可以指向子类，虽然指的是D类对象，但指针觉得指向的是B类对象
+ep->print(); //用的是B类的print()
+#### virtual
+``` cpp
+class B
+{
+public:
+    virtual void f(); //告知子类可能会有此函数的不同版本
+};
 
+class D
+{
+public: 
+    void f();
+}
+```
+在父类函数加virtual关键字后，ep->f()，调用的是子类D的f()，即会去调用实际指向的对象自己版本的f()而不是简单地去用父类的f()
 
+- Upcast: take an object of the derived class as an object of the base one.
+    - Ellipse can be treated as a Shape
+- Dynamic binding:
+    - Binding: which function to be called
+        - Static binding: call the function as the code //编译时刻确定，通过.运算符(对象本身)调用是静态绑定(即便有virtual)，通过指针和引用去调用一个virtual函数是动态绑定
+        - Dynamic binding: call the function of the object
+``` cpp
+void render(Shape* p) { //Shape为父类， p为多态变量，有两个类型，静态类型是定义时的类型(编译时刻获得),以及运行时的动态类型(取决于实际指向什么类型的对象)
+    p->render(); // calls correct render function
+} // for given Shape!
+```
+8字节对齐
+带有virtual的类成员有一个指针成员vptr，指向(自己的)virtual函数表(vtable,是静态的)，如果没有自己版本的函数，则用的是父类的版本，然后是父类对象和自己的成员变量。自己增加的虚函数会放在表末。可以用*vptr去调用
 
+在类构造函数中调用虚函数，调用的是自己的版本，虚函数不起作用了。先分配空间再构造。vptr在构造函数最前面被写入(在初始化链前),在链接时vtable才被确定。其实构造函数内的f()依然是动态绑定，只是此时vptr指向的是自己的vtable，所以调用的是自己的版本
+在父类成员函数中调用虚函数(this->f())，还是动态绑定，调用具体指向的对象的版本
+``` cpp
+Ellipse elly(20F, 40F);
+Circle circ(60F);
+elly = circ; // 10 in 5?
+
+• Area of circ is sliced off
+–(Only the part of circ that fits in elly gets copied)
+• Vtable from circ is ignored; the vtable in elly is the Ellipse vtable //vptr在构造后不改变
+elly.render(); // Ellipse::render()
 
 ```
+
+
+
+
+
+
+
+
+
